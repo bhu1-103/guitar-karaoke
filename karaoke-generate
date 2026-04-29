@@ -1,0 +1,90 @@
+#!/usr/bin/zsh
+
+temp_file="/tmp/ranger_file"
+
+ranger --choosefile="$temp_file"
+selected_path=$(cat "$temp_file" | tr -d '\n')
+rm -rf separated
+
+echo -n "Enter Language: "
+read lang
+
+#echo "Paste lyrics now"
+#nvim $LYRICS
+#I will auto sync pre made no timing lyrics to real lyrics later
+
+echo "Running htdemucs_6s"
+$HOME/games/venv/demucs/bin/python3 -m demucs -n htdemucs_6s --device cuda "$selected_path" #Okayish model but splits guitar track too
+echo "Running htdemucs_ft"
+$HOME/games/venv/demucs/bin/python3 -m demucs -n htdemucs_ft --device cuda "$selected_path" #Best model but no guitar split
+
+INPUT_DIR_6s="$(pwd)/separated/htdemucs_6s/${${selected_path:t}:r}"
+INPUT_DIR_ft="$(pwd)/separated/htdemucs_ft/${${selected_path:t}:r}"
+OUTPUT_NAME="$HOME/Music/karaoke/${INPUT_DIR_ft:t}.mkv"
+OUTPUT_NAME_guitar="$HOME/Music/karaoke/cache/${INPUT_DIR_ft:t}/karaoke-guitar.m4a"
+OUTPUT_NAME_vocals="$HOME/Music/karaoke/cache/${INPUT_DIR_ft:t}/karaoke-vocals.m4a"
+OUTPUT_NAME_backing_track="$HOME/Music/karaoke/cache/${INPUT_DIR_ft:t}/karaoke-backing_track.m4a"
+LYRICS_DIR="$HOME/Music/karaoke/cache/${INPUT_DIR_ft:t}"
+LYRICS_FILE="$LYRICS_DIR/vocals.srt"
+
+mkdir -p "$HOME/Music/karaoke/cache/${INPUT_DIR_ft:t}"
+
+echo "Generating lyrics"
+$HOME/games/venv/demucs/bin/python3 -m whisper "$INPUT_DIR_ft/vocals.wav" --language "$lang" --model small --output_format srt -o "$LYRICS_DIR" --word_timestamps True --hallucination_silence_threshold 2
+
+# bass.wav  drums.wav  guitar.wav  other.wav  piano.wav  vocals.wav
+ffmpeg -loglevel quiet -hide_banner -nostats -y \
+  -i "$INPUT_DIR_ft/bass.wav" \
+  -i "$INPUT_DIR_ft/drums.wav" \
+  -i "$INPUT_DIR_6s/other.wav" \
+  -i "$INPUT_DIR_6s/piano.wav" \
+  -i "$INPUT_DIR_ft/vocals.wav" \
+  -filter_complex "amix=inputs=5:duration=longest:dropout_transition=0:normalize=0" \
+  -b:a 320k \
+  "$OUTPUT_NAME_guitar"
+echo "Done! Created $OUTPUT_NAME_guitar"
+
+ffmpeg -loglevel quiet -hide_banner -nostats -y \
+  -i "$INPUT_DIR_ft/bass.wav" \
+  -i "$INPUT_DIR_ft/drums.wav" \
+  -i "$INPUT_DIR_ft/other.wav" \
+  -filter_complex "amix=inputs=3:duration=longest:dropout_transition=0:normalize=0" \
+  -b:a 320k \
+  "$OUTPUT_NAME_vocals"
+echo "Done! Created $OUTPUT_NAME_vocals"
+
+ffmpeg -loglevel quiet -hide_banner -nostats -y \
+  -i "$INPUT_DIR_ft/bass.wav" \
+  -i "$INPUT_DIR_ft/drums.wav" \
+  -i "$INPUT_DIR_6s/other.wav" \
+  -i "$INPUT_DIR_6s/piano.wav" \
+  -filter_complex "amix=inputs=4:duration=longest:dropout_transition=0:normalize=0" \
+  -b:a 320k \
+  "$OUTPUT_NAME_backing_track"
+echo "Done! Created $OUTPUT_NAME_backing_track"
+
+echo "Merging into mkv file"
+ffmpeg -loglevel quiet -hide_banner -nostats -y \
+  -i "$selected_path" \
+  -i "$OUTPUT_NAME_guitar" \
+  -i "$OUTPUT_NAME_backing_track" \
+  -i "$OUTPUT_NAME_vocals" \
+  -i "$LYRICS_FILE" \
+  -map 0:a -map 1:a -map 2:a -map 3:a -map 4:s \
+  -c:a copy \
+  -c:s srt \
+  -metadata:s:a:0 title="Original" \
+  -metadata:s:a:1 title="Guitar Karaoke" \
+  -metadata:s:a:2 title="Guitar+Vocals Karaoke" \
+  -metadata:s:a:3 title="Vocals Karaoke" \
+  -metadata:s:s:0 title="Lyrics" \
+  "$OUTPUT_NAME"
+echo "Merge complete"
+
+rm "$OUTPUT_NAME_guitar" "$OUTPUT_NAME_vocals" "$OUTPUT_NAME_backing_track"
+mkdir "$HOME/Music/karaoke/cache/${${selected_path:t}:r}/demucs_6s/" "$HOME/Music/karaoke/cache/${${selected_path:t}:r}/demucs_ft/"
+mv separated/htdemucs_6s/*/*.wav "$HOME/Music/karaoke/cache/${${selected_path:t}:r}/demucs_6s/"
+mv separated/htdemucs_ft/*/*.wav "$HOME/Music/karaoke/cache/${${selected_path:t}:r}/demucs_ft/"
+rm -rf separated
+
+echo "Clean complete"
