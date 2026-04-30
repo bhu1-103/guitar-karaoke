@@ -414,11 +414,15 @@ while running:
         drum_impacts.clear()
 
     # ── GUITAR: 6 diagonal strings beyond frame ────────────────────────
+    x_offset = 500
+    y_offset = 400
     if stem_enabled["guitar"]:
         for s_i, (x1, y1, x2, y2) in enumerate(STRINGS):
             val = bins_guitar[s_i] * amp_guitar
-            dx = x2 - x1
-            dy = y2 - y1
+            angle = math.radians(165)
+            length = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)*2
+            dx = math.cos(angle) * length
+            dy = math.sin(angle) * length
             length = math.sqrt(dx*dx + dy*dy)
             if length == 0:
                 continue
@@ -430,8 +434,8 @@ while running:
                 tt = k / 59
                 vib = math.sin(tt * math.pi * 4 + frame_i * 0.4) * val * 40
                 s_pts.append((
-                    int(x1 + tt * dx + px_perp * vib),
-                    int(y1 + tt * dy + py_perp * vib)
+                    int(x1 + tt * dx + px_perp * vib + x_offset),
+                    int(y1 + tt * dy + py_perp * vib + y_offset)
                 ))
             
             brightness = min(255, int(150 + val * 400))
@@ -468,7 +472,7 @@ while running:
             intensity = max(0.0, amp_vocals - 0.02) 
             
             # Scale the glitch and shake based on how loud the singer is
-            aberration = int(intensity * 30) 
+            aberration = int(intensity * 50) 
             
             shake_x = 0
             shake_y = 0
