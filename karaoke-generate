@@ -34,7 +34,7 @@ mkdir -p "$HOME/Music/karaoke/cache/${INPUT_DIR_ft:t}"
 echo "Generating lyrics"
 #$HOME/games/venv/demucs/bin/python3 -m whisper "$INPUT_DIR_ft/vocals.wav" --language "$lang" --model small --output_format srt -o "$LYRICS_DIR" --word_timestamps True --hallucination_silence_threshold 2
 
-$WHISPER_DIR/bin/whisper-cli -f "$INPUT_DIR_ft/vocals.wav" -m "$WHISPER_DIR/models/ggml-small.bin" -l "$lang" -osrt "${${selected_path:t}:r}" -of "$LYRICS_DIR" -tp 1.0 --vad -vm "$WHISPER_DIR/models/for-tests-silero-v6.2.0-ggml.bin" -vsd 2000 -sns
+$WHISPER_DIR/bin/whisper-cli -f "$INPUT_DIR_ft/vocals.wav" -m "$WHISPER_DIR/models/ggml-small.bin" -l "$lang" -osrt "${${selected_path:t}:r}" -of "$LYRICS_DIR" -tp 1.0 --vad -vm "$WHISPER_DIR/models/for-tests-silero-v6.2.0-ggml.bin" -vsd 300 -sns
 mv "$LYRICS_DIR.srt" "$LYRICS_DIR/vocals.srt"
 
 #6s -> bass.wav  drums.wav  guitar.wav  other.wav  piano.wav  vocals.wav
