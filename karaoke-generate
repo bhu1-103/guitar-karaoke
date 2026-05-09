@@ -21,20 +21,25 @@ $HOME/games/venv/demucs/bin/python3 -m demucs -n htdemucs_ft --device cuda "$sel
 INPUT_DIR_6s="$(pwd)/separated/htdemucs_6s/${${selected_path:t}:r}"
 INPUT_DIR_ft="$(pwd)/separated/htdemucs_ft/${${selected_path:t}:r}"
 OUTPUT_NAME="$HOME/Music/karaoke/${INPUT_DIR_ft:t}.mkv"
-OUTPUT_NAME_guitar="$HOME/Music/karaoke/cache/${INPUT_DIR_ft:t}/karaoke-guitar.m4a"
-OUTPUT_NAME_vocals="$HOME/Music/karaoke/cache/${INPUT_DIR_ft:t}/karaoke-vocals.m4a"
-OUTPUT_NAME_backing_track="$HOME/Music/karaoke/cache/${INPUT_DIR_ft:t}/karaoke-backing_track.m4a"
+OUTPUT_NAME_guitar="$HOME/Music/karaoke/cache/${INPUT_DIR_ft:t}/karaoke-guitar.opus"
+OUTPUT_NAME_vocals="$HOME/Music/karaoke/cache/${INPUT_DIR_ft:t}/karaoke-vocals.opus"
+OUTPUT_NAME_backing_track="$HOME/Music/karaoke/cache/${INPUT_DIR_ft:t}/karaoke-backing_track.opus"
 LYRICS_DIR="$HOME/Music/karaoke/cache/${INPUT_DIR_ft:t}"
-LYRICS_FILE="$LYRICS_DIR/vocals.srt"
+LYRICS_FILE="$LYRICS_DIR/vocals.ass"
 WHISPER_DIR="$HOME/dev/git/whisper.cpp"
 
 
 mkdir -p "$HOME/Music/karaoke/cache/${INPUT_DIR_ft:t}"
 
 echo "Generating lyrics"
+#python whisper
 #$HOME/games/venv/demucs/bin/python3 -m whisper "$INPUT_DIR_ft/vocals.wav" --language "$lang" --model small --output_format srt -o "$LYRICS_DIR" --word_timestamps True --hallucination_silence_threshold 2
 
-$WHISPER_DIR/bin/whisper-cli -f "$INPUT_DIR_ft/vocals.wav" -m "$WHISPER_DIR/models/ggml-small.bin" -l "$lang" -osrt -tp 1.0 --vad -vm "$WHISPER_DIR/models/for-tests-silero-v6.2.0-ggml.bin" -vsd 300 -sns -vmsd 12 -owts -ojf -dtw small -of "$LYRICS_DIR/${${selected_path:t}:r}"
+#whisper.cpp
+#$WHISPER_DIR/bin/whisper-cli -f "$INPUT_DIR_ft/vocals.wav" -m "$WHISPER_DIR/models/ggml-medium-q8_0.bin" -l "$lang" -osrt -owts -ojf -mc 20 -of "$LYRICS_DIR/${${selected_path:t}:r}" -fp "$HOME/.local/share/fonts/DepartureMonoNerdFontPropo-Regular.otf"
+$WHISPER_DIR/bin/whisper-cli -f "$INPUT_DIR_ft/vocals.wav" -m "$WHISPER_DIR/models/ggml-large-v3-turbo.bin" -l "$lang" -osrt -owts -ojf -mc 20 -of "$LYRICS_DIR/${${selected_path:t}:r}" -fp "$HOME/.local/share/fonts/DepartureMonoNerdFontPropo-Regular.otf"
+
+cp "$LYRICS_DIR/${INPUT_DIR_ft:t}.srt" "$LYRICS_DIR/vocals.srt"
 
 #6s -> bass.wav  drums.wav  guitar.wav  other.wav  piano.wav  vocals.wav
 #ft -> bass.wav  drums.wav  other.wav  vocals.wav
@@ -45,7 +50,7 @@ ffmpeg -loglevel quiet -hide_banner -nostats -y \
   -i "$INPUT_DIR_6s/piano.wav" \
   -i "$INPUT_DIR_ft/vocals.wav" \
   -filter_complex "amix=inputs=5:duration=longest:dropout_transition=0:normalize=0" \
-  -b:a 320k \
+  -c:a libopus -b:a 160k \
   "$OUTPUT_NAME_guitar"
 echo "Done! Created $OUTPUT_NAME_guitar"
 
@@ -54,7 +59,7 @@ ffmpeg -loglevel quiet -hide_banner -nostats -y \
   -i "$INPUT_DIR_ft/drums.wav" \
   -i "$INPUT_DIR_ft/other.wav" \
   -filter_complex "amix=inputs=3:duration=longest:dropout_transition=0:normalize=0" \
-  -b:a 320k \
+  -c:a libopus -b:a 160k \
   "$OUTPUT_NAME_vocals"
 echo "Done! Created $OUTPUT_NAME_vocals"
 
@@ -64,38 +69,50 @@ ffmpeg -loglevel quiet -hide_banner -nostats -y \
   -i "$INPUT_DIR_6s/other.wav" \
   -i "$INPUT_DIR_6s/piano.wav" \
   -filter_complex "amix=inputs=4:duration=longest:dropout_transition=0:normalize=0" \
-  -b:a 320k \
+  -c:a libopus -b:a 160k \
   "$OUTPUT_NAME_backing_track"
 echo "Done! Created $OUTPUT_NAME_backing_track"
+
+ffmpeg -loglevel quiet -hide_banner -nostats -y \
+  -i "$INPUT_DIR_ft/vocals.wav" \
+  -c:a libopus -b:a 160k \
+  "$INPUT_DIR_ft/vocals.opus" 
+
+mkdir "$HOME/Music/karaoke/cache/${${selected_path:t}:r}/demucs_6s/" "$HOME/Music/karaoke/cache/${${selected_path:t}:r}/demucs_ft/"
+mv separated/htdemucs_6s/*/*.wav "$HOME/Music/karaoke/cache/${${selected_path:t}:r}/demucs_6s/"
+mv separated/htdemucs_ft/*/*.wav "$HOME/Music/karaoke/cache/${${selected_path:t}:r}/demucs_ft/"
+
+echo "Setting up Reactive Lyrics"
+python "$HOME/Music/karaoke/json2ass.py" "$LYRICS_DIR"
 
 echo "Merging into mkv file"
 ffmpeg -loglevel quiet -hide_banner -nostats -y \
   -i "$selected_path" \
   -i "$OUTPUT_NAME_guitar" \
-  -i "$OUTPUT_NAME_backing_track" \
   -i "$OUTPUT_NAME_vocals" \
+  -i "$OUTPUT_NAME_backing_track" \
   -i "$LYRICS_FILE" \
-  -i "$INPUT_DIR_6s/guitar.wav" \
-  -i "$INPUT_DIR_ft/bass.wav" \
-  -i "$INPUT_DIR_ft/drums.wav" \
-  -i "$INPUT_DIR_ft/vocals.wav" \
-  -map 0:a -map 1:a -map 2:a -map 3:a -map 4:s \
-  -c:v h264_nvenc -preset p4 -pix_fmt yuv420p \
+  -i "$INPUT_DIR_ft/vocals.opus" \
+  -attach "$HOME/.local/share/fonts/DepartureMonoNerdFontPropo-Regular.otf" \
+  -attach "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc" \
+  -map 0:v -map 0:a -map 1:a -map 2:a -map 3:a -map 4:s -map 5:a \
+  -c:v copy \
   -c:a copy \
-  -c:s srt \
+  -c:s ass \
   -metadata:s:a:0 title="Original" \
-  -metadata:s:a:1 title="Guitar Karaoke" \
-  -metadata:s:a:2 title="Guitar+Vocals Karaoke" \
-  -metadata:s:a:3 title="Vocals Karaoke" \
+  -metadata:s:a:1 title="No Guitar" \
+  -metadata:s:a:2 title="Karaoke" \
+  -metadata:s:a:3 title="No Guitar+Vocals" \
+  -metadata:s:a:4 title="Vocals" \
   -metadata:s:s:0 title="Lyrics" \
+  -disposition:s:0 default \
+  -metadata:s:t mimetype=font/otf \
   "$OUTPUT_NAME"
 echo "Merge complete"
 
-ffmpeg -i $selected_path -loglevel quiet -hide_banner -nostats -y -b:a 320k "$HOME/Music/karaoke/cache/${${selected_path:t}:r}/original.m4a" #not sure why i did this, but ok
+#ffmpeg -i "$selected_path" -loglevel quiet -hide_banner -nostats -y -b:a 320k "$HOME/Music/karaoke/cache/${${selected_path:t}:r}/original.m4a" #not sure why i did this, but ok
 #mv "$OUTPUT_NAME_guitar" "$OUTPUT_NAME_vocals" "$OUTPUT_NAME_backing_track" "$HOME/Music/karaoke/cache/${${selected_path:t}:r}"
-mkdir "$HOME/Music/karaoke/cache/${${selected_path:t}:r}/demucs_6s/" "$HOME/Music/karaoke/cache/${${selected_path:t}:r}/demucs_ft/"
-mv separated/htdemucs_6s/*/*.wav "$HOME/Music/karaoke/cache/${${selected_path:t}:r}/demucs_6s/"
-mv separated/htdemucs_ft/*/*.wav "$HOME/Music/karaoke/cache/${${selected_path:t}:r}/demucs_ft/"
+echo "Cleaning Files"
 rm -rf separated
 
-echo "Clean complete"
+echo "Done!!"
