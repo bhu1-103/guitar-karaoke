@@ -36,8 +36,7 @@ echo "Generating lyrics"
 #$HOME/games/venv/demucs/bin/python3 -m whisper "$INPUT_DIR_ft/vocals.wav" --language "$lang" --model small --output_format srt -o "$LYRICS_DIR" --word_timestamps True --hallucination_silence_threshold 2
 
 #whisper.cpp
-#$WHISPER_DIR/bin/whisper-cli -f "$INPUT_DIR_ft/vocals.wav" -m "$WHISPER_DIR/models/ggml-medium-q8_0.bin" -l "$lang" -osrt -owts -ojf -mc 20 -of "$LYRICS_DIR/${${selected_path:t}:r}" -fp "$HOME/.local/share/fonts/DepartureMonoNerdFontPropo-Regular.otf"
-$WHISPER_DIR/bin/whisper-cli -f "$INPUT_DIR_ft/vocals.wav" -m "$WHISPER_DIR/models/ggml-large-v3-turbo.bin" -l "$lang" -osrt -owts -ojf -mc 20 -of "$LYRICS_DIR/${${selected_path:t}:r}" -fp "$HOME/.local/share/fonts/DepartureMonoNerdFontPropo-Regular.otf"
+$WHISPER_DIR/bin/whisper-cli -f "$INPUT_DIR_ft/vocals.wav" -m "$WHISPER_DIR/models/ggml-large-v3-turbo.bin" -l "$lang" -osrt -owts -ojf -mc 20 -vm $WHISPER_DIR/models/ggml-silero-v6.2.0.bin --vad -vt 0.7 -mc 0 -nth 0.8 -ml 1 -sow -of "$LYRICS_DIR/${${selected_path:t}:r}" -fp "$HOME/.local/share/fonts/DepartureMonoNerdFontPropo-Regular.otf" -np -nt
 
 cp "$LYRICS_DIR/${INPUT_DIR_ft:t}.srt" "$LYRICS_DIR/vocals.srt"
 
