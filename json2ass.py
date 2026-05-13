@@ -23,7 +23,7 @@ Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour,
 Style: Default,Mochiy Pop One,68,&H00FFFFFF,&H00FFFFFF,&H00111111,&H00111111,0,0,0,0,100,100,0,0,1,4,3,5,40,40,60,1
 """
 
-def analyze_audio(wav_path: Path, fps=8):
+def analyze_audio(wav_path: Path, fps=60):
     with wave.open(str(wav_path), 'rb') as wav:
         frames = wav.readframes(wav.getnframes())
         audio_data = np.frombuffer(frames, dtype=np.int16)
@@ -78,26 +78,36 @@ def main():
         data = json.load(f)
 
     lines = []
-    global_nudge = -100
+    current_line_words = []
+    global_nudge = -300 # negative delay for karaoke
     
     for seg in data.get("transcription", []):
-        if not seg.get("text", "").strip():
+        clean_text = seg.get("text", "").replace("\n", "").strip()
+        if not clean_text:
             continue
             
-        current_line_words = []
         start_time = seg["offsets"]["from"] + global_nudge
         end_time = seg["offsets"]["to"] + global_nudge
         
-        clean_text = seg["text"].replace("\n", "").strip()
+        word_obj = {
+            "text": clean_text,
+            "start": start_time,
+            "end": end_time
+        }
         
-        if clean_text:
-            word_obj = {
-                "text": " " + clean_text,
-                "start": start_time,
-                "end": end_time
-            }
-            current_line_words.append(word_obj)
-            lines.append(current_line_words)
+        if current_line_words:
+            prev_end = current_line_words[-1]["end"]
+            gap = start_time - prev_end
+            ends_with_punct = current_line_words[-1]["text"].endswith(('.', '!', '?', ','))
+            
+            if gap > 800 or len(current_line_words) >= 8 or ends_with_punct:
+                lines.append(current_line_words)
+                current_line_words = []
+                
+        current_line_words.append(word_obj)
+
+    if current_line_words:
+        lines.append(current_line_words)
 
     ass_lines = [get_minimal_ass_header(), "[Events]", "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"]
 
@@ -138,24 +148,27 @@ def main():
             c_pulse = get_pulse_color(v_rms_smoothed[v_idx])
             pulse_tags += f"\\t({t_start},{t_start},\\1c{c_pulse})"
 
-        common_prefix = f"{{\\move(960,820,960,950,{rel_drop_start},{rel_drop_end})\\fad(200,200)"
+        common_prefix = f"{{\\q2\\move(960,820,960,950,{rel_drop_start},{rel_drop_end})\\fad(200,200)"
         
         l0_text = f"{common_prefix}\\alpha&H44&\\1c&H0000FF&\\3c&H0000FF&\\blur3{l0_tags}}}"
         l1_text = f"{common_prefix}\\alpha&H44&\\1c&HFFFF00&\\3c&HFFFF00&\\blur3{l1_tags}}}"
         l2_text = f"{common_prefix}\\3c&H000000&\\blur0{l2_tags}{pulse_tags}}}"
         l3_text = f"{common_prefix}\\alpha&HFF&\\1c{active_color}\\3c&H000000&\\blur0{l3_tags}}}"
         
-        for word in line:
+        for i, word in enumerate(line):
             t0 = word["start"] - event_start
             t1 = word["end"] - event_start
             
             pop_anim = f"\\t({t0},{t0},\\fscx130)\\t({t1},{t1},\\fscx100)"
             word_txt = word['text']
             
-            l0_text += f"{{{pop_anim}}}{word_txt}"
-            l1_text += f"{{{pop_anim}}}{word_txt}"
-            l2_text += f"{{{pop_anim}}}{word_txt}"
-            l3_text += f"{{\\alpha&HFF&\\t({t0},{t0},\\alpha&H00&\\fscx130)\\t({t1},{t1},\\alpha&HFF&\\fscx100)}}{word_txt}"
+            # Add a space before the ASS tags if it's not the first word
+            space = " " if i > 0 else ""
+            
+            l0_text += f"{space}{{{pop_anim}}}{word_txt}"
+            l1_text += f"{space}{{{pop_anim}}}{word_txt}"
+            l2_text += f"{space}{{{pop_anim}}}{word_txt}"
+            l3_text += f"{space}{{\\alpha&HFF&\\t({t0},{t0},\\alpha&H00&\\fscx130)\\t({t1},{t1},\\alpha&HFF&\\fscx100)}}{word_txt}"
 
         ass_lines.append(f"Dialogue: 0,{ms_to_ass(event_start)},{ms_to_ass(event_end)},Default,,0,0,0,,{l0_text}")
         ass_lines.append(f"Dialogue: 1,{ms_to_ass(event_start)},{ms_to_ass(event_end)},Default,,0,0,0,,{l1_text}")
