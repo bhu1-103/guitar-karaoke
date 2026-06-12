@@ -1,6 +1,6 @@
 # guitar-karaoke
 
-A program I made for learning to play guitar. I stopped development as a better tool already exists for this....
+A program I made for learning to play guitar. I stopped development as a better tool already exists for this.... -> [slopsmith](https://github.com/slopsmith/slopsmith)
 
 ## tools used
 
