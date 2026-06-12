@@ -1,6 +1,6 @@
 # guitar-karaoke
 
-A program I made for learning to play guitar
+A program I made for learning to play guitar. I stopped development as a better tool already exists for this....
 
 ## tools used
 
