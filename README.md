@@ -3,8 +3,6 @@
 A program I made for learning to play guitar. I stopped development as a better tool already exists for this.... -> [slopsmith](https://github.com/slopsmith/slopsmith)
 Unfortunately, slopsmith has been DMCA'd by Ubisoft. So I get to work on my guitar learning tool again.
 
-July 06 -> I started working on a DIY AMP and Pedal
-
 Check out project writeup on [my website](https://8hu.one/projects/guitar_karaoke/index.html)
 
 ## tools used
@@ -36,4 +34,8 @@ Check out project writeup on [my website](https://8hu.one/projects/guitar_karaok
 ## whisper.cpp
 
 - now uses whisper.cpp for faster inference
-- since my gtx 1060's cuda setup is messed up, i used the vulkan backend
+- since my gtx 1060's cuda setup is messed up, i used the vulkan backendA
+
+## to-do
+
+- pedal as midi input

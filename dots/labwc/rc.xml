@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<labwc_config>
+  <theme>
+    <font place="ActiveWindow">
+      <name>Nunito Sans</name>
+      <size>12</size>
+      <weight>Light</weight>
+      <slant>Normal</slant>
+    </font>
+    <font place="InactiveWindow">
+      <name>Nunito Sans</name>
+      <size>12</size>
+      <weight>Light</weight>
+      <slant>Normal</slant>
+    </font>
+    <name>PiXonyx</name>
+  </theme>
+  
+  <touch deviceName="1-0038 EP0110M09" mapToOutput="SPI-1" mouseEmulation="yes"/>
+  
+  <libinput>
+    <device category="touch">
+      <calibrationMatrix>1.0 0.0 0.0 0.0 1.0 0.0</calibrationMatrix>
+    </device>
+  </libinput>
+
+  <windowRules>
+    <windowRule identifier="*uitarix*">
+      <action name="Maximize" />
+    </windowRule>
+  </windowRules>
+</labwc_config>
