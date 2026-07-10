@@ -15,10 +15,11 @@ Check out project writeup on [my website](https://8hu.one/projects/guitar_karaok
 - ffmpeg
 - whisper -> turbo model
 
-#### for the hardware
+#### for the diy amp
 
 - guitarix
 - jack
+- pedal pi
 
 ### hardware
 - Audio Interface -> Behringer UM2
