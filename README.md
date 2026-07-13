@@ -17,14 +17,14 @@ Check out project writeup on [my website](https://8hu.one/projects/guitar_karaok
 
 #### for the diy amp
 
-- guitarix
-- jack
-- pedal pi
+- ~guitarix~
+- [jack audio](https://jackaudio.org/)
+- [pedal pi](https://github.com/rerdavies/pipedal)
 
 ### hardware
 - Audio Interface -> Behringer UM2
 - Raspberry Pi 5 with 10k mah power bank and a 3.5 inch display to replace an amp knobs
-- My Super-Strat
+- My Super-Strat -> Cort G115SE
 
 ## process
 
