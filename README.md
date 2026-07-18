@@ -25,6 +25,7 @@ Check out project writeup on [my website](https://8hu.one/projects/guitar_karaok
 - Audio Interface -> Behringer UM2
 - Raspberry Pi 5 with 10k mah power bank and a 3.5 inch display to replace an amp knobs
 - My Super-Strat -> Cort G115SE
+- Raspberry Pi Pico 2 W with 3x NiMH batteries to use as a pedal to switch effects
 
 ## process
 
